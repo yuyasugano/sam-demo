@@ -85,6 +85,15 @@ Resources:
       Name:
         Ref: DemoApiName
       StageName: Prod
+      MethodSettings:
+      - HttpMethod: '*'
+        ResourcePath: /*
+        CachingEnabled: true
+        CacheTtlInSeconds: 300
+        CacheDataEncrypted: true
+        MetricsEnabled: true
+        ThrottlingBurstLimit: 1000
+        ThrottlingRateLimit: 500
       Auth:
         DefaultAuthorizer: MyLambdaTokenAuthorizer
         Authorizers:

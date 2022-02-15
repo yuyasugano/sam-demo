@@ -89,6 +89,15 @@ Resources:
     Properties:
       Name: !Ref DemoApiName
       StageName: Prod
+      MethodSettings: # More info about MethodSettings Properties: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apigateway-stage-methodsetting.html
+        - HttpMethod: '*'
+          ResourcePath: '/*'
+          CachingEnabled: true
+          CacheTtlInSeconds: 300
+          CacheDataEncrypted: true
+          MetricsEnabled: true
+          ThrottlingBurstLimit: 1000
+          ThrottlingRateLimit: 500
       Auth: # More info about LambdaTokenAuthorizer Resources: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-controlling-access-to-apis-lambda-authorizer.html
         DefaultAuthorizer: MyLambdaTokenAuthorizer
         Authorizers:
