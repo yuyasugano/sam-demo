@@ -28,6 +28,12 @@ Resources:
     Properties:
       TableName:
         Ref: TableName
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 1
       SSESpecification:
         SSEEnabled: true
       Tags:
@@ -79,13 +85,29 @@ Resources:
       Name:
         Ref: DemoApiName
       StageName: Prod
+      Auth:
+        DefaultAuthorizer: MyLambdaTokenAuthorizer
+        Authorizers:
+          MyLambdaTokenAuthorizer:
+            FunctionArn:
+              Fn::GetAtt:
+              - AuthorizerFunction
+              - Arn
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://serverless-aws-sam-deployment/a1eebc5c9f588a123efcc8496cfc9db1
+      Handler: authorizer.lambda_handler
+      Runtime: python3.8
+      Timeout: 10
+      MemorySize: 128
   DemoFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://serverless-aws-sam-deployment/06fb0b0f4d0a9d7d2c54fd768dcce22c
+      CodeUri: s3://serverless-aws-sam-deployment/a1eebc5c9f588a123efcc8496cfc9db1
       Handler: app.lambda_handler
       Runtime: python3.8
-      Timeout: 300
+      Timeout: 10
       MemorySize: 128
       Role:
         Fn::GetAtt:
@@ -105,6 +127,16 @@ Resources:
             Method: get
             RequestParameters:
             - method.request.querystring.id
+  AuthorizerFuntionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${AuthorizerFunction}
+  DemoFuntionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${DemoFunction}
 Outputs:
   DemoApi:
     Description: API Gateway endpoint URL for Prod stage for Demo Application

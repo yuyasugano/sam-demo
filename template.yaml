@@ -32,11 +32,18 @@ Resources:
     Type: AWS::Serverless::SimpleTable # More infor about SimpleTable Resource: https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/sam-resource-simpletable.html
     Properties:
       TableName: !Ref TableName
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 1
       SSESpecification:
         SSEEnabled: true
       Tags:
         Department: !Ref Department
         AppType: !Ref Apptype
+
   DemoFunctionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -76,18 +83,36 @@ Resources:
                 - "logs:CreateLogStream"
                 - "logs:PutLogEvents"
               Resource: "*"
+
   DemoApi:
     Type: AWS::Serverless::Api # More info aabout Api Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-api.html 
     Properties:
       Name: !Ref DemoApiName
       StageName: Prod
+      Auth: # More info about LambdaTokenAuthorizer Resources: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-controlling-access-to-apis-lambda-authorizer.html
+        DefaultAuthorizer: MyLambdaTokenAuthorizer
+        Authorizers:
+          MyLambdaTokenAuthorizer:
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+
+  # Lambda Authorizer Function
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: demo/
+      Handler: authorizer.lambda_handler
+      Runtime: python3.8
+      Timeout: 10
+      MemorySize: 128
+
+  # Lambda Demo API Function
   DemoFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: demo/
       Handler: app.lambda_handler
       Runtime: python3.8
-      Timeout: 300
+      Timeout: 10
       MemorySize: 128
       Role: !GetAtt DemoFunctionRole.Arn
       Environment:
@@ -102,6 +127,16 @@ Resources:
             Method: get
             RequestParameters: # queryString id needs to be added in a request: https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/sam-property-function-api.html
               - method.request.querystring.id
+
+  AuthorizerFuntionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AuthorizerFunction}
+
+  DemoFuntionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${DemoFunction}
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
