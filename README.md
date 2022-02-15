@@ -25,8 +25,8 @@ To use the SAM CLI, you need the following tools.
 To build and deploy your application for the first time, run the following in your shell:
  
 ```bash
-sam build --use-container
-sam deploy --guided
+sam package --template-file template.yaml --s3-bucket <your-s3-bucket> --output-template-file compiled.yaml
+sam deploy --template-file compiled.yaml --stack-name sam-demo --capabilities CAPABILITY_NAMED_IAM
 ```
  
 The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
