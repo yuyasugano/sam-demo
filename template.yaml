@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  sam-demo
+  Sample SAM Application for Demo Purpose
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+
+Parameters:
+  TableName:
+    Type: String
+    Default: demo
+  Department:
+    Type: String
+    Default: engineering
+  Apptype:
+    Type: String
+    Default: serverless
+  DemoApiName:
+    Type: String
+    Default: 'DemoApi'
+  DemoFunctionRoleName:
+    Type: String
+    Default: 'DemoFunctionDynamoDBFullAccess'
+
+Globals:
+  Function:
+    Timeout: 180
+
+Resources:
+  DemoTable:
+    Type: AWS::Serverless::SimpleTable # More infor about SimpleTable Resource: https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/sam-resource-simpletable.html
+    Properties:
+      TableName: !Ref TableName
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        Department: !Ref Department
+        AppType: !Ref Apptype
+  DemoFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref DemoFunctionRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        -  
+          Effect: Allow
+          Principal:
+            Service:
+              - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+        - 
+          PolicyName: 'AccessToDemoDynamoDB'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - 
+              Effect: Allow
+              Action:
+                - "dynamodb:GetItem"
+                - "dynamodb:Query"
+                - "dynamodb:Scan"
+              Resource: !GetAtt DemoTable.Arn
+        - 
+          PolicyName: 'AccessToDemoCloudWatch'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - 
+              Effect: Allow
+              Action:
+                - "logs:CreateLogGroup"
+                - "logs:CreateLogStream"
+                - "logs:PutLogEvents"
+              Resource: "*"
+  DemoApi:
+    Type: AWS::Serverless::Api # More info aabout Api Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-api.html 
+    Properties:
+      Name: !Ref DemoApiName
+      StageName: Prod
+  DemoFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: demo/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Role: !GetAtt DemoFunctionRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+      Events:
+        Demo:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: !Ref DemoApi
+            Path: /demo
+            Method: get
+            RequestParameters: # queryString id needs to be added in a request: https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/sam-property-function-api.html
+              - method.request.querystring.id
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  DemoApi:
+    Description: "API Gateway endpoint URL for Prod stage for Demo Application"
+    Value: !Sub "https://${DemoApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/demo/"
+  DemoFunction:
+    Description: "Demo Lambda Function ARN"
+    Value: !GetAtt DemoFunction.Arn
+  DemoFunctionIamRole:
+    Description: "Implicit IAM Role created for Demo function"
+    Value: !GetAtt DemoFunctionRole.Arn
+  DemoTable:
+    Description: "Demo DynamoDB Table ARN"
+    Value: !GetAtt DemoTable.Arn
