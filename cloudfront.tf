@@ -1,7 +1,7 @@
-resource "aws_cloudfront_distribution" "api_dist" {
+resource "aws_cloudfront_distribution" "demo" {
     origin {
         domain_name = data.aws_cloudformation_stack.sam.outputs["DemoApi"]
-        origin_id = "sam-api-gateway"
+        origin_id = "demo-api-gateway"
 
         custom_origin_config {
             https_port = 443
@@ -15,7 +15,7 @@ resource "aws_cloudfront_distribution" "api_dist" {
     default_cache_behavior {
         allowed_methods = ["GET", "HEAD"]
         cached_methods = ["GET", "HEAD"]
-        target_origin_id = "sam-api-gateway"
+        target_origin_id = "demo-api-gateway"
 
         forwarded_values {
             query_string = true
